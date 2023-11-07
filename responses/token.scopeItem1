@@ -1,0 +1,6 @@
+{
+    "access_token": "1111111-d1ad-3f14-a7a8-9bc1d1f9da19",
+    "expires_in": 2000,
+    "scope": "scopeItem1",
+    "token_type": "Bearer"
+}

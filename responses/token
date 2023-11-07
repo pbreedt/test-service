@@ -1,0 +1,6 @@
+{
+    "access_token": "6c7095db-d1ad-3f14-a7a8-9bc1d1f9da19",
+    "expires_in": 1800,
+    "scope": "am_application_scope default",
+    "token_type": "Bearer"
+}
