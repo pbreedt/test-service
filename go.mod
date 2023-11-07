@@ -1,3 +1,3 @@
-module bitbucket.org/vservices/ms-test-service
+module github.com/pbreedt/testservice
 
 go 1.21
