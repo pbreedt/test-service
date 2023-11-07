@@ -5,20 +5,30 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
-	"strings"
 )
 
 var (
 	ServiceVersion string
 	httpPort       = flag.String("http.port", "8080", "HTTP Port Number")
+	MatcherPattern = flag.String("m.pattern", "", "Matcher pattern")
+	MatcherType    = flag.String("m.type", "", "Matcher type ()")
+
+	ResponseMatcher *Matcher
 )
 
 func main() {
 	flag.Parse()
 
 	http.HandleFunc("/", requestHandler)
+
+	if *MatcherPattern != "" && *MatcherType != "" {
+		ResponseMatcher = &Matcher{
+			Pattern: *MatcherPattern,
+			Type:    *MatcherType,
+		}
+		fmt.Printf("Using response matcher %+v\n", ResponseMatcher)
+	}
 
 	fmt.Printf("Starting service at http://localhost:%s/\n", *httpPort)
 	http.ListenAndServe(fmt.Sprintf(":%s", *httpPort), nil)
@@ -35,47 +45,23 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 	if derr != nil {
 		defRes = `{ "result" : "success" }`
 	}
-	respFile := ""
-	pathArr := strings.Split(r.URL.Path, "/")
 
-	if len(pathArr) >= 2 {
-		respFile = pathArr[1]
-		fmt.Println("Required response provided in URL", respFile)
+	if ResponseMatcher != nil {
+		respFile := ResponseMatcher.Match(r)
+		if respFile != "" {
+			fmt.Println("Request matcher result:", respFile)
 
-		scope := getScope(string(reqBody))
-		if scope != "" {
-			respFile += "." + scope
-		}
-
-		response, err := getResponse("./responses/" + respFile)
-		if err != nil {
-			fmt.Printf("Errror getting response from file %s. Error=%v\n", respFile, err)
-		} else {
-			fmt.Fprint(w, response)
-			return
+			response, err := getResponse("./responses/" + respFile)
+			if err != nil {
+				fmt.Printf("Errror getting response from file %s. Error=%v\n", respFile, err)
+			} else {
+				fmt.Fprint(w, response)
+				return
+			}
 		}
 	}
 
 	fmt.Fprint(w, defRes)
-}
-
-func getScope(body string) string {
-	if len(body) <= 0 {
-		return ""
-	}
-
-	unesc, e := url.QueryUnescape(string(body))
-	fmt.Println("Got request body", unesc, "error", e)
-
-	fields := strings.Split(unesc, "&")
-	for _, field := range fields {
-		kv := strings.Split(field, "=")
-		if len(kv) == 2 && kv[0] == "scope" && len(kv[1]) > 0 {
-			return kv[1]
-		}
-	}
-
-	return ""
 }
 
 func getResponse(reqPath string) (string, error) {
